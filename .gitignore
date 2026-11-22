@@ -1,3 +1,23 @@
+# Rust build output
 /target
-.superpowers/
+**/*.rs.bk
+
+# Local SQLite databases (the app stores its DB under ~/.local/share, but
+# keep any stray copies out of git)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Editors / IDEs
 .idea/
+.vscode/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code brainstorming / planning scratch
+.superpowers/

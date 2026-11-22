@@ -1,3 +1,5 @@
+mod model;
+
 use gpui_kit::component::{
     button::{Button, ButtonVariants},
     label::Label,

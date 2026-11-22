@@ -1,16 +1,19 @@
 use chrono::NaiveDate;
 use gpui_kit::component::{
+    ActiveTheme,
     button::{Button, ButtonVariants},
     calendar::Date,
     date_picker::{DatePicker, DatePickerState},
-    input::{Input, InputState},
+    h_flex,
+    input::{Input, InputState, Textarea, TextareaState},
     label::Label,
-    v_flex, h_flex, ActiveTheme,
+    v_flex,
 };
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
-use crate::model::{validate, NewTodo, Todo};
+use super::markdown::{MdFormat, apply};
+use crate::model::{NewTodo, Todo, validate};
 
 pub enum TodoFormEvent {
     Submit(NewTodo),
@@ -19,7 +22,7 @@ pub enum TodoFormEvent {
 
 pub struct TodoForm {
     title: Entity<InputState>,
-    description: Entity<InputState>,
+    description: Entity<TextareaState>,
     date: Entity<DatePickerState>,
     editing: bool,
     error: Option<String>,
@@ -39,8 +42,9 @@ impl TodoForm {
                 .default_value(title)
         });
         let description = cx.new(|cx| {
-            InputState::new(window, cx)
-                .placeholder("Description (optional)")
+            TextareaState::new(window, cx)
+                .auto_grow(4, 12)
+                .placeholder("Description (optional, Markdown supported)")
                 .default_value(description)
         });
         let date = cx.new(|cx| {
@@ -50,7 +54,13 @@ impl TodoForm {
             }
             s
         });
-        Self { title, description, date, editing: existing.is_some(), error: None }
+        Self {
+            title,
+            description,
+            date,
+            editing: existing.is_some(),
+            error: None,
+        }
     }
 
     fn selected_date(&self, cx: &App) -> Option<NaiveDate> {
@@ -58,6 +68,52 @@ impl TodoForm {
             Date::Single(d) => d,
             Date::Range(d, _) => d,
         }
+    }
+
+    /// Apply a toolbar format to the description's current selection.
+    /// Uses select + replace so the change is a single undoable edit.
+    fn format(&mut self, f: MdFormat, window: &mut Window, cx: &mut Context<Self>) {
+        self.description.update(cx, |state, cx| {
+            let text = state.value();
+            let edit = apply(&text, state.selected_range(), f);
+            state.set_selected_range(edit.range.clone(), cx);
+            state.replace(edit.text, window, cx);
+            state.set_selected_range(edit.select, cx);
+            state.focus(window, cx);
+        });
+    }
+
+    fn render_toolbar(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        const BUTTONS: [(&str, &str, &str, MdFormat); 8] = [
+            ("md-bold", "B", "Bold", MdFormat::Bold),
+            ("md-italic", "I", "Italic", MdFormat::Italic),
+            ("md-code", "</>", "Inline code", MdFormat::Code),
+            ("md-link", "🔗", "Link", MdFormat::Link),
+            ("md-heading", "H", "Heading", MdFormat::Heading),
+            ("md-bullet", "•", "Bulleted list", MdFormat::Bullet),
+            ("md-numbered", "1.", "Numbered list", MdFormat::Numbered),
+            ("md-quote", "❝", "Quote", MdFormat::Quote),
+        ];
+        let mut bar = h_flex()
+            .gap_1()
+            .px_1()
+            .py_0p5()
+            .rounded_t_md()
+            .border_1()
+            .border_b_0()
+            .border_color(cx.theme().border)
+            .bg(cx.theme().muted);
+        for (id, label, tip, f) in BUTTONS {
+            bar = bar.child(
+                Button::new(id)
+                    .ghost()
+                    .compact()
+                    .label(label)
+                    .tooltip(tip)
+                    .on_click(cx.listener(move |this, _, window, cx| this.format(f, window, cx))),
+            );
+        }
+        bar
     }
 
     fn save(&mut self, cx: &mut Context<Self>) {
@@ -76,7 +132,11 @@ impl TodoForm {
 
 impl Render for TodoForm {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let heading = if self.editing { "Edit todo" } else { "New todo" };
+        let heading = if self.editing {
+            "Edit todo"
+        } else {
+            "New todo"
+        };
         v_flex()
             .gap_2()
             .p_3()
@@ -85,7 +145,11 @@ impl Render for TodoForm {
             .rounded_md()
             .child(Label::new(heading).font_weight(FontWeight::SEMIBOLD))
             .child(Input::new(&self.title))
-            .child(Input::new(&self.description))
+            .child(
+                v_flex()
+                    .child(self.render_toolbar(cx))
+                    .child(Textarea::new(&self.description)),
+            )
             .child(DatePicker::new(&self.date).placeholder("Target completion date"))
             .when_some(self.error.clone(), |el, err| {
                 el.child(div().text_color(cx.theme().danger).child(err))

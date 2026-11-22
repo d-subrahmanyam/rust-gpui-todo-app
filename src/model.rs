@@ -63,7 +63,11 @@ mod tests {
         let t = validate("  Buy milk ", "  2 litres ", Some(d())).unwrap();
         assert_eq!(
             t,
-            NewTodo { title: "Buy milk".into(), description: "2 litres".into(), target_date: d() }
+            NewTodo {
+                title: "Buy milk".into(),
+                description: "2 litres".into(),
+                target_date: d()
+            }
         );
     }
 
@@ -75,13 +79,25 @@ mod tests {
 
     #[test]
     fn validate_rejects_blank_title() {
-        assert_eq!(validate("   ", "x", Some(d())), Err(ValidationError::TitleRequired));
-        assert_eq!(ValidationError::TitleRequired.message(), "Title is required");
+        assert_eq!(
+            validate("   ", "x", Some(d())),
+            Err(ValidationError::TitleRequired)
+        );
+        assert_eq!(
+            ValidationError::TitleRequired.message(),
+            "Title is required"
+        );
     }
 
     #[test]
     fn validate_rejects_missing_date() {
-        assert_eq!(validate("Buy milk", "", None), Err(ValidationError::DateRequired));
-        assert_eq!(ValidationError::DateRequired.message(), "Target date is required");
+        assert_eq!(
+            validate("Buy milk", "", None),
+            Err(ValidationError::DateRequired)
+        );
+        assert_eq!(
+            ValidationError::DateRequired.message(),
+            "Target date is required"
+        );
     }
 }

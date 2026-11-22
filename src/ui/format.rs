@@ -33,7 +33,10 @@ pub fn due_text(d: NaiveDate) -> String {
 }
 
 pub fn visible(todos: &[Todo], show_completed: bool) -> Vec<&Todo> {
-    todos.iter().filter(|t| show_completed || !t.completed).collect()
+    todos
+        .iter()
+        .filter(|t| show_completed || !t.completed)
+        .collect()
 }
 
 #[cfg(test)]

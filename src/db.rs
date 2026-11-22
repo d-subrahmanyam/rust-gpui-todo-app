@@ -70,7 +70,12 @@ impl TodoRepo {
     pub fn update(&self, id: i64, t: &NewTodo) -> rusqlite::Result<()> {
         self.conn.execute(
             "UPDATE todos SET title = ?1, description = ?2, target_date = ?3 WHERE id = ?4",
-            params![t.title, t.description, t.target_date.format(DATE_FMT).to_string(), id],
+            params![
+                t.title,
+                t.description,
+                t.target_date.format(DATE_FMT).to_string(),
+                id
+            ],
         )?;
         Ok(())
     }
@@ -84,13 +89,18 @@ impl TodoRepo {
     }
 
     pub fn delete(&self, id: i64) -> rusqlite::Result<()> {
-        self.conn.execute("DELETE FROM todos WHERE id = ?1", params![id])?;
+        self.conn
+            .execute("DELETE FROM todos WHERE id = ?1", params![id])?;
         Ok(())
     }
 
     pub fn get_setting(&self, key: &str) -> rusqlite::Result<Option<String>> {
         self.conn
-            .query_row("SELECT value FROM settings WHERE key = ?1", params![key], |r| r.get(0))
+            .query_row(
+                "SELECT value FROM settings WHERE key = ?1",
+                params![key],
+                |r| r.get(0),
+            )
             .optional()
     }
 
@@ -155,7 +165,10 @@ mod tests {
         assert_eq!(list.iter().map(|t| t.id).collect::<Vec<_>>(), vec![b, a]);
         assert_eq!(list[1].title, "A");
         assert_eq!(list[1].description, "A desc");
-        assert_eq!(list[1].target_date, NaiveDate::from_ymd_opt(2026, 11, 30).unwrap());
+        assert_eq!(
+            list[1].target_date,
+            NaiveDate::from_ymd_opt(2026, 11, 30).unwrap()
+        );
         assert!(!list[1].completed);
         assert!(list[1].completed_at.is_none());
     }
@@ -167,10 +180,16 @@ mod tests {
         let b = repo.add(&new("B")).unwrap();
         // Simulate a DST fall-back: B's local timestamp sorts earlier as text.
         repo.conn
-            .execute("UPDATE todos SET created_at = '2026-11-01T01:10:00-05:00' WHERE id = ?1", [b])
+            .execute(
+                "UPDATE todos SET created_at = '2026-11-01T01:10:00-05:00' WHERE id = ?1",
+                [b],
+            )
             .unwrap();
         repo.conn
-            .execute("UPDATE todos SET created_at = '2026-11-01T01:30:00-04:00' WHERE id = ?1", [a])
+            .execute(
+                "UPDATE todos SET created_at = '2026-11-01T01:30:00-04:00' WHERE id = ?1",
+                [a],
+            )
             .unwrap();
         let ids: Vec<_> = repo.list().unwrap().iter().map(|t| t.id).collect();
         assert_eq!(ids, vec![b, a]);
@@ -220,7 +239,10 @@ mod tests {
     #[test]
     fn unicode_and_quotes_round_trip() {
         let repo = TodoRepo::open_in_memory().unwrap();
-        let t = NewTodo { title: "It's \"done\" ✅".into(), ..new("x") };
+        let t = NewTodo {
+            title: "It's \"done\" ✅".into(),
+            ..new("x")
+        };
         repo.add(&t).unwrap();
         assert_eq!(repo.list().unwrap()[0].title, "It's \"done\" ✅");
     }
@@ -245,6 +267,9 @@ mod tests {
         assert_eq!(repo.get_setting("show_completed").unwrap(), None);
         repo.set_setting("show_completed", "0").unwrap();
         repo.set_setting("show_completed", "1").unwrap();
-        assert_eq!(repo.get_setting("show_completed").unwrap(), Some("1".into()));
+        assert_eq!(
+            repo.get_setting("show_completed").unwrap(),
+            Some("1".into())
+        );
     }
 }

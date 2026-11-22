@@ -1,3 +1,4 @@
+mod db;
 mod model;
 
 use gpui_kit::component::{

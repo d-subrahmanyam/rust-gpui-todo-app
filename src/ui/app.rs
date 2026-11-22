@@ -1,7 +1,8 @@
-use gpui_kit::component::{v_flex, ActiveTheme};
+use gpui_kit::component::{v_flex, ActiveTheme, Theme, ThemeMode};
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
+use super::theme::{setting_value, stored_dark, THEME_KEY};
 use super::todo_form::{TodoForm, TodoFormEvent};
 use crate::db::TodoRepo;
 use crate::model::{NewTodo, Todo};
@@ -20,8 +21,13 @@ pub struct TodoApp {
 }
 
 impl TodoApp {
-    pub fn new(repo: TodoRepo, _window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(repo: TodoRepo, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let mut error = None;
+        match repo.get_setting(THEME_KEY).map(|v| stored_dark(v.as_deref())) {
+            Ok(Some(dark)) => Theme::change(mode(dark), Some(window), cx),
+            Ok(None) => Theme::sync_system_appearance(Some(window), cx),
+            Err(e) => error = Some(format!("Could not load settings: {e}")),
+        }
         let show_completed = match repo.get_setting(SHOW_COMPLETED) {
             Ok(v) => v.as_deref() != Some("0"),
             Err(e) => {
@@ -108,12 +114,24 @@ impl TodoApp {
         self.reload(cx);
     }
 
+    pub(super) fn toggle_theme(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let dark = !cx.theme().is_dark();
+        Theme::change(mode(dark), Some(window), cx);
+        let r = self.repo.set_setting(THEME_KEY, setting_value(dark));
+        self.report("save the theme", r);
+        cx.notify();
+    }
+
     pub(super) fn set_show_completed(&mut self, on: bool, cx: &mut Context<Self>) {
         self.show_completed = on;
         let r = self.repo.set_setting(SHOW_COMPLETED, if on { "1" } else { "0" });
         self.report("save the setting", r);
         cx.notify();
     }
+}
+
+fn mode(dark: bool) -> ThemeMode {
+    if dark { ThemeMode::Dark } else { ThemeMode::Light }
 }
 
 impl Render for TodoApp {

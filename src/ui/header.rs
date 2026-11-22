@@ -1,12 +1,17 @@
 use chrono::{Local, Timelike};
 use gpui_kit::component::{
+    ActiveTheme,
     button::{Button, ButtonVariants},
-    h_flex, label::Label, switch::Switch, v_flex, ActiveTheme,
+    h_flex,
+    label::Label,
+    switch::Switch,
+    v_flex,
 };
 use gpui_kit::*;
 
 use super::app::TodoApp;
 use super::format::{greeting, open_count_text};
+use super::theme::toggle_label;
 
 impl TodoApp {
     pub(super) fn render_header(&self, cx: &mut Context<Self>) -> impl IntoElement {
@@ -34,10 +39,25 @@ impl TodoApp {
                     .items_end()
                     .gap_2()
                     .child(
-                        Button::new("new-todo")
-                            .primary()
-                            .label("+ New todo")
-                            .on_click(cx.listener(|this, _, window, cx| this.open_form(None, window, cx))),
+                        h_flex()
+                            .gap_2()
+                            .child(
+                                Button::new("toggle-theme")
+                                    .ghost()
+                                    .label(toggle_label(cx.theme().is_dark()))
+                                    .tooltip("Switch light / dark mode")
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.toggle_theme(window, cx)
+                                    })),
+                            )
+                            .child(
+                                Button::new("new-todo")
+                                    .primary()
+                                    .label("+ New todo")
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.open_form(None, window, cx)
+                                    })),
+                            ),
                     )
                     .child(
                         Switch::new("show-completed")

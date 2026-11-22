@@ -22,15 +22,10 @@ fn main() {
     application().with_assets(assets::Assets).run(move |cx| {
         init(cx);
         let bounds = Bounds::centered(None, size(px(640.), px(720.)), cx);
-        let options = WindowOptions {
-            window_bounds: Some(WindowBounds::Windowed(bounds)),
-            titlebar: Some(TitlebarOptions {
-                title: Some("Todos".into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        open_window(options, cx, |window, cx| cx.new(|cx| TodoApp::new(repo, window, cx)))
-            .expect("Failed to open window");
+        let options = ui::title_bar::window_options(bounds);
+        open_window(options, cx, |window, cx| {
+            cx.new(|cx| TodoApp::new(repo, window, cx))
+        })
+        .expect("Failed to open window");
     });
 }

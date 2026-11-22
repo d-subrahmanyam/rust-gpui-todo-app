@@ -1,8 +1,8 @@
-use gpui_kit::component::{v_flex, ActiveTheme, Theme, ThemeMode};
+use gpui_kit::component::{ActiveTheme, Theme, ThemeMode, v_flex};
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
-use super::theme::{setting_value, stored_dark, THEME_KEY};
+use super::theme::{THEME_KEY, setting_value, stored_dark};
 use super::todo_form::{TodoForm, TodoFormEvent};
 use crate::db::TodoRepo;
 use crate::model::{NewTodo, Todo};
@@ -23,7 +23,10 @@ pub struct TodoApp {
 impl TodoApp {
     pub fn new(repo: TodoRepo, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let mut error = None;
-        match repo.get_setting(THEME_KEY).map(|v| stored_dark(v.as_deref())) {
+        match repo
+            .get_setting(THEME_KEY)
+            .map(|v| stored_dark(v.as_deref()))
+        {
             Ok(Some(dark)) => Theme::change(mode(dark), Some(window), cx),
             Ok(None) => Theme::sync_system_appearance(Some(window), cx),
             Err(e) => error = Some(format!("Could not load settings: {e}")),
@@ -66,13 +69,20 @@ impl TodoApp {
         cx.notify();
     }
 
-    pub(super) fn open_form(&mut self, id: Option<i64>, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn open_form(
+        &mut self,
+        id: Option<i64>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let existing = id.and_then(|id| self.todos.iter().find(|t| t.id == id).cloned());
         let form = cx.new(|cx| TodoForm::new(existing.as_ref(), window, cx));
-        self._form_sub = Some(cx.subscribe(&form, |this, _, ev: &TodoFormEvent, cx| match ev {
-            TodoFormEvent::Submit(t) => this.submit(t.clone(), cx),
-            TodoFormEvent::Cancel => this.close_form(cx),
-        }));
+        self._form_sub = Some(
+            cx.subscribe(&form, |this, _, ev: &TodoFormEvent, cx| match ev {
+                TodoFormEvent::Submit(t) => this.submit(t.clone(), cx),
+                TodoFormEvent::Cancel => this.close_form(cx),
+            }),
+        );
         self.form = Some(form);
         self.editing = id;
         self.confirm_delete = None;
@@ -88,7 +98,9 @@ impl TodoApp {
 
     fn submit(&mut self, t: NewTodo, cx: &mut Context<Self>) {
         let ok = match self.editing {
-            Some(id) => self.report("update the todo", self.repo.update(id, &t)).is_some(),
+            Some(id) => self
+                .report("update the todo", self.repo.update(id, &t))
+                .is_some(),
             None => self.report("save the todo", self.repo.add(&t)).is_some(),
         };
         if ok {
@@ -124,24 +136,29 @@ impl TodoApp {
 
     pub(super) fn set_show_completed(&mut self, on: bool, cx: &mut Context<Self>) {
         self.show_completed = on;
-        let r = self.repo.set_setting(SHOW_COMPLETED, if on { "1" } else { "0" });
+        let r = self
+            .repo
+            .set_setting(SHOW_COMPLETED, if on { "1" } else { "0" });
         self.report("save the setting", r);
         cx.notify();
     }
 }
 
 fn mode(dark: bool) -> ThemeMode {
-    if dark { ThemeMode::Dark } else { ThemeMode::Light }
+    if dark {
+        ThemeMode::Dark
+    } else {
+        ThemeMode::Light
+    }
 }
 
 impl Render for TodoApp {
-    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        v_flex()
-            .size_full()
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let content = v_flex()
+            .flex_1()
+            .min_h_0()
             .p_4()
             .gap_3()
-            .bg(cx.theme().background)
-            .text_color(cx.theme().foreground)
             .child(self.render_header(cx))
             .when_some(self.error.clone(), |el, err| {
                 el.child(
@@ -155,6 +172,12 @@ impl Render for TodoApp {
             })
             .when_some(self.form.clone(), |el, form| el.child(form))
             .child(self.render_list(cx))
-            .child(self.render_footer(cx))
+            .child(self.render_footer(cx));
+        v_flex()
+            .size_full()
+            .bg(cx.theme().background)
+            .text_color(cx.theme().foreground)
+            .child(self.render_title_bar(window, cx))
+            .child(content)
     }
 }

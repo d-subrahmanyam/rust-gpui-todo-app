@@ -5,8 +5,13 @@ A small, friendly desktop todo app written in Rust with [GPUI](https://www.gpui.
 
 ## Features
 
-- **Add todos** with a title, an optional description and a target completion
-  date picked from a built-in calendar.
+- **Add todos** with a title, an optional multi-line **Markdown** description
+  and a target completion date picked from a built-in calendar.
+- **Markdown toolbar** above the description: bold, italic, inline code, link,
+  heading, bulleted list, numbered list and quote. Buttons wrap the selected
+  text (or insert a placeholder); list/heading/quote buttons apply to every
+  selected line and toggle off when pressed again. Descriptions are rendered
+  as Markdown in the list.
 - **Newest first:** the most recently added todo sits at the top of the list.
 - **Per-todo actions:**
   - ✓ mark complete
@@ -19,6 +24,10 @@ A small, friendly desktop todo app written in Rust with [GPUI](https://www.gpui.
   of open todos.
 - **Light / dark mode:** a ☀️ / 🌙 button in the header switches themes. The
   choice is remembered; on first launch the app follows your system setting.
+- **Custom title bar** with the app name, drag-to-move, **minimize** and
+  **close** buttons. There is deliberately no maximize button. (On macOS the
+  system traffic lights are used; under a window manager that draws its own
+  decorations, its controls are used instead.)
 - **Footer** shows today's date, e.g. "Sunday, 22 November 2026".
 - **Validation:** a title and a target date are required; problems are shown
   inline in the form. Database errors are shown in the window instead of
@@ -73,12 +82,14 @@ src/
   db.rs            TodoRepo: schema, CRUD and settings on SQLite
   ui/
     app.rs         TodoApp root view: state, actions, layout
+    title_bar.rs   custom title bar (drag, minimize, close) and window options
     header.rs      greeting, open count, theme toggle, "+ New todo", switch
-    todo_form.rs   add / edit form (title, description, date picker)
+    todo_form.rs   add / edit form (title, Markdown description + toolbar, date picker)
     todo_list.rs   todo rows and their actions
     footer.rs      today's date
     format.rs      pure text/date helpers (unit-tested)
     theme.rs       light/dark setting helpers (unit-tested)
+    markdown.rs    Markdown toolbar text edits (unit-tested)
 docs/superpowers/  design spec and implementation plan
 ```
 
@@ -86,4 +97,4 @@ docs/superpowers/  design spec and implementation plan
 
 `cargo test` covers validation, the SQLite repository (ordering, edits,
 completion, deletion, unicode, reopening the file, settings) and the
-formatting and theme helpers. The UI itself is checked by running the app.
+formatting, theme and Markdown toolbar helpers. The UI itself is checked by running the app.

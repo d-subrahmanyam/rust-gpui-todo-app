@@ -75,6 +75,10 @@ settings(key, value)   -- show_completed = '1'|'0', theme = 'light'|'dark'
 
 ## Project layout
 
+New to the code? Start with **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**. It
+explains how the code is laid out and how each feature (title bar, Markdown
+toolbar, theming, storage and so on) works.
+
 ```
 src/
   main.rs          opens the database and the window

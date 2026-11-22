@@ -5,6 +5,9 @@ edition = "2024"
 
 [dependencies]
 gpui-kit = "0.10.0"
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = "0.4"
+dirs = "5"
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-L", "/home/linuxbrew/.linuxbrew/lib"]

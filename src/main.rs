@@ -1,39 +1,36 @@
-use gpui_kit::component::{
-    button::{Button, ButtonVariants},
-    label::Label,
-};
+mod db;
+mod model;
+mod ui;
+
 use gpui_kit::*;
 
-struct HelloWorld;
-
-impl Render for HelloWorld {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .flex_col()
-            .size_full()
-            .items_center()
-            .justify_center()
-            .gap_2()
-            .child(Label::new("Hello, World!"))
-            .child(
-                Button::new("hello")
-                    .primary()
-                    .label("Click me")
-                    .on_click(|_, _, _| println!("Clicked!")),
-            )
-    }
-}
+use db::TodoRepo;
+use ui::app::TodoApp;
 
 fn main() {
-    application()
-        .with_assets(assets::Assets)
-        .run(|cx| {
-            init(cx);
+    let repo = match TodoRepo::default_path()
+        .map_err(|e| e.to_string())
+        .and_then(|p| TodoRepo::open(&p).map_err(|e| format!("{}: {e}", p.display())))
+    {
+        Ok(repo) => repo,
+        Err(e) => {
+            eprintln!("Failed to open the todo database: {e}");
+            std::process::exit(1);
+        }
+    };
 
-            open_window(WindowOptions::default(), cx, |_, cx| {
-                cx.new(|_| HelloWorld)
-            })
-                .expect("Failed to open window");
-        });
+    application().with_assets(assets::Assets).run(move |cx| {
+        init(cx);
+        let bounds = Bounds::centered(None, size(px(640.), px(720.)), cx);
+        let options = WindowOptions {
+            window_bounds: Some(WindowBounds::Windowed(bounds)),
+            titlebar: Some(TitlebarOptions {
+                title: Some("Todos".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        open_window(options, cx, |window, cx| cx.new(|cx| TodoApp::new(repo, window, cx)))
+            .expect("Failed to open window");
+    });
 }

@@ -1,5 +1,6 @@
 mod db;
 mod model;
+mod ui;
 
 use gpui_kit::component::{
     button::{Button, ButtonVariants},

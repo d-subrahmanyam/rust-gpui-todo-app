@@ -1,13 +1,16 @@
 use chrono::{Local, NaiveDate};
 use gpui_kit::component::{
+    ActiveTheme,
     button::{Button, ButtonVariants},
-    h_flex, v_flex, ActiveTheme,
+    h_flex,
+    text::TextView,
+    v_flex,
 };
 use gpui_kit::prelude::FluentBuilder;
 use gpui_kit::*;
 
 use super::app::TodoApp;
-use super::format::{due_text, is_overdue, visible, EMPTY_TEXT};
+use super::format::{EMPTY_TEXT, due_text, is_overdue, visible};
 use crate::model::Todo;
 
 impl TodoApp {
@@ -38,13 +41,14 @@ impl TodoApp {
     fn render_row(&self, t: &Todo, today: NaiveDate, cx: &mut Context<Self>) -> impl IntoElement {
         let id = t.id;
         let overdue = is_overdue(t, today);
-        let meta = if t.description.is_empty() {
-            due_text(t.target_date)
+        let title = div()
+            .font_weight(FontWeight::SEMIBOLD)
+            .child(t.title.clone());
+        let title = if t.completed {
+            title.line_through()
         } else {
-            format!("{} · {}", t.description, due_text(t.target_date))
+            title
         };
-        let title = div().font_weight(FontWeight::SEMIBOLD).child(t.title.clone());
-        let title = if t.completed { title.line_through() } else { title };
 
         let actions = if self.confirm_delete == Some(id) {
             h_flex()
@@ -100,7 +104,7 @@ impl TodoApp {
 
         h_flex()
             .justify_between()
-            .items_center()
+            .items_start()
             .gap_2()
             .py_2()
             .border_b_1()
@@ -110,7 +114,14 @@ impl TodoApp {
                 v_flex()
                     .gap_0p5()
                     .min_w_0()
+                    .flex_1()
                     .child(title)
+                    .when(!t.description.is_empty(), |el| {
+                        el.child(div().text_sm().child(TextView::markdown(
+                            ("desc", id as u64),
+                            t.description.clone(),
+                        )))
+                    })
                     .child(
                         div()
                             .text_sm()
@@ -119,7 +130,7 @@ impl TodoApp {
                             } else {
                                 cx.theme().muted_foreground
                             })
-                            .child(meta),
+                            .child(due_text(t.target_date)),
                     ),
             )
             .child(actions)

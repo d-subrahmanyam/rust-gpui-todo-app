@@ -54,7 +54,7 @@ impl TodoRepo {
     pub fn list(&self) -> rusqlite::Result<Vec<Todo>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, title, description, target_date, completed, created_at, completed_at
-             FROM todos ORDER BY created_at DESC, id DESC",
+             FROM todos ORDER BY id DESC",
         )?;
         stmt.query_map([], row_to_todo)?.collect()
     }
@@ -158,6 +158,22 @@ mod tests {
         assert_eq!(list[1].target_date, NaiveDate::from_ymd_opt(2026, 11, 30).unwrap());
         assert!(!list[1].completed);
         assert!(list[1].completed_at.is_none());
+    }
+
+    #[test]
+    fn list_order_follows_insertion_even_if_clock_offset_changes() {
+        let repo = TodoRepo::open_in_memory().unwrap();
+        let a = repo.add(&new("A")).unwrap();
+        let b = repo.add(&new("B")).unwrap();
+        // Simulate a DST fall-back: B's local timestamp sorts earlier as text.
+        repo.conn
+            .execute("UPDATE todos SET created_at = '2026-11-01T01:10:00-05:00' WHERE id = ?1", [b])
+            .unwrap();
+        repo.conn
+            .execute("UPDATE todos SET created_at = '2026-11-01T01:30:00-04:00' WHERE id = ?1", [a])
+            .unwrap();
+        let ids: Vec<_> = repo.list().unwrap().iter().map(|t| t.id).collect();
+        assert_eq!(ids, vec![b, a]);
     }
 
     #[test]
